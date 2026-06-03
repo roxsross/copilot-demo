@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>GitHub Copilot — De prompt básico a flujo profesional</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#050a18;--surface:#0c1425;--card:#111b2e;--border:#1e2d4a;
+  --primary:#2563eb;--primary-g:rgba(37,99,235,.15);
+  --accent:#10b981;--accent-g:rgba(16,185,129,.12);
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;
+  --text:#e2e8f0;--muted:#64748b;--dim:#334155;
+  --radius:16px;--mono:'JetBrains Mono',monospace;
+}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden}
+
+/* ─── HERO ─── */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(37,99,235,.12),transparent 70%);top:-100px;left:-100px;animation:float 8s ease-in-out infinite}
+.hero::after{content:'';position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(16,185,129,.10),transparent 70%);bottom:-80px;right:-80px;animation:float 10s ease-in-out infinite reverse}
+@keyframes float{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,20px)}}
+.hero-badge{display:inline-flex;align-items:center;gap:.5rem;background:var(--primary-g);border:1px solid rgba(37,99,235,.3);color:#60a5fa;padding:.4rem 1.2rem;border-radius:99px;font-size:.8rem;font-weight:600;margin-bottom:1.5rem;position:relative}
+.hero h1{font-size:clamp(2.2rem,6vw,4.5rem);font-weight:900;line-height:1.1;margin-bottom:1rem;position:relative}
+.hero h1 .c{color:#60a5fa}.hero h1 .t{color:var(--accent)}
+.hero p{color:var(--muted);font-size:1.15rem;max-width:580px;margin-bottom:2.5rem;position:relative}
+.hero-meta{display:flex;gap:2rem;color:var(--muted);font-size:.9rem;position:relative}
+.hero-meta span{display:flex;align-items:center;gap:.4rem}
+.btn-start{display:inline-flex;align-items:center;gap:.5rem;background:var(--primary);color:#fff;padding:.9rem 2.5rem;border-radius:12px;font-size:1rem;font-weight:700;text-decoration:none;border:none;cursor:pointer;margin-bottom:2rem;transition:all .2s;position:relative}
+.btn-start:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(37,99,235,.4)}
+
+/* ─── CONTAINER ─── */
+.container{max-width:780px;margin:0 auto;padding:0 1.5rem}
+
+/* ─── FASE DIVIDER ─── */
+.fase{padding:3.5rem 0 1.5rem;display:flex;align-items:center;gap:1rem}
+.fase-num{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.1rem;flex-shrink:0;color:#fff}
+.fase-1{background:var(--green)}.fase-2{background:var(--yellow)}.fase-3{background:var(--primary)}
+.fase-4{background:linear-gradient(135deg,#7c3aed,#db2777)}
+.fase h2{font-size:1.3rem;font-weight:800}.fase .sub{color:var(--muted);font-size:.85rem}
+
+/* ─── MISSION CARD ─── */
+.mission{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1.2rem;overflow:hidden;transition:border-color .25s,box-shadow .25s}
+.mission:hover{border-color:rgba(37,99,235,.4)}
+.mission.active{border-color:var(--primary);box-shadow:0 0 40px rgba(37,99,235,.08)}
+.mission-head{padding:1.2rem 1.5rem;cursor:pointer;display:flex;align-items:center;gap:1rem;-webkit-user-select:none;user-select:none}
+.mission-icon{font-size:1.6rem;flex-shrink:0;width:36px;text-align:center}
+.mission-info{flex:1}
+.mission-tag{font-size:.65rem;padding:.15rem .55rem;border-radius:99px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.tag-f{background:rgba(16,185,129,.12);color:var(--green)}
+.tag-a{background:rgba(245,158,11,.12);color:var(--yellow)}
+.tag-e{background:var(--primary-g);color:#60a5fa}
+.tag-lab{background:rgba(124,58,237,.12);color:#a78bfa}
+.mission-title{font-weight:700;font-size:1rem;margin-top:.15rem}
+.mission-arrow{color:var(--dim);font-size:1.4rem;transition:transform .3s;flex-shrink:0}
+.mission.active .mission-arrow{transform:rotate(90deg);color:var(--primary)}
+.mission-body{max-height:0;overflow:hidden;transition:max-height .4s ease}
+.mission.active .mission-body{max-height:5000px}
+.mission-content{padding:0 1.5rem 1.5rem}
+.mission-content p{color:var(--muted);margin-bottom:.8rem;font-size:.93rem}
+.mission-content strong{color:var(--text)}
+
+/* ─── PROMPT BOX ─── */
+.prompt{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin:1rem 0;overflow:hidden}
+.prompt-bar{display:flex;align-items:center;justify-content:space-between;padding:.55rem 1rem;border-bottom:1px solid var(--border);background:rgba(37,99,235,.06)}
+.prompt-label{font-size:.78rem;font-weight:700;color:#60a5fa;display:flex;align-items:center;gap:.4rem}
+.prompt-label::before{content:'💬'}
+.copy{background:var(--primary);color:#fff;border:none;padding:.25rem .75rem;border-radius:6px;font-size:.72rem;font-weight:700;cursor:pointer;transition:all .15s;font-family:inherit}
+.copy:hover{opacity:.85}.copy.ok{background:var(--green)}
+.prompt pre{padding:1rem 1.2rem;font-family:var(--mono);font-size:.82rem;line-height:1.65;white-space:pre-wrap;color:#cbd5e1;overflow-x:auto}
+
+/* ─── FILE BOX ─── */
+.file-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin:1rem 0;overflow:hidden}
+.file-bar{display:flex;align-items:center;justify-content:space-between;padding:.55rem 1rem;border-bottom:1px solid var(--border);background:rgba(16,185,129,.06)}
+.file-label{font-size:.78rem;font-weight:700;color:var(--accent);display:flex;align-items:center;gap:.4rem}
+.file-label::before{content:'📄'}
+.file-box pre{padding:1rem 1.2rem;font-family:var(--mono);font-size:.82rem;line-height:1.65;white-space:pre-wrap;color:#cbd5e1;overflow-x:auto}
+
+/* ─── RESULT / TIP / NOTE ─── */
+.result,.tip,.note{border-radius:10px;padding:.9rem 1.1rem;margin:.8rem 0;font-size:.88rem;line-height:1.6}
+.result{background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.18)}
+.result::before{content:'✅ Resultado: ';font-weight:700;color:var(--green)}
+.tip{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.18)}
+.tip::before{content:'💡 ';font-weight:700}
+.note{background:rgba(37,99,235,.07);border:1px solid rgba(37,99,235,.18)}
+.note::before{content:'📌 ';font-weight:700}
+
+/* ─── WIZARD ─── */
+.wizard{display:flex;flex-direction:column;gap:.5rem;margin:1rem 0}
+.wiz-step{display:flex;align-items:center;gap:.8rem;padding:.6rem .9rem;background:var(--surface);border:1px solid var(--border);border-radius:10px;font-size:.85rem}
+.wiz-num{width:26px;height:26px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0}
+.wiz-step code{background:var(--card);padding:.1rem .45rem;border-radius:4px;font-family:var(--mono);font-size:.8rem;color:var(--accent)}
+.wiz-step .check{color:var(--green);font-weight:700}
+
+/* ─── DIFF (antes / después) ─── */
+.diff{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin:1rem 0}
+.diff-box{border-radius:10px;padding:.85rem 1rem;font-size:.83rem;line-height:1.6;font-family:var(--mono)}
+.diff-before{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.18);color:#fca5a5}
+.diff-before::before{content:'✗ Sin instrucciones';display:block;font-weight:700;color:var(--red);margin-bottom:.4rem;font-family:'Inter',sans-serif;font-size:.75rem}
+.diff-after{background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.18);color:#6ee7b7}
+.diff-after::before{content:'✓ Con instrucciones';display:block;font-weight:700;color:var(--green);margin-bottom:.4rem;font-family:'Inter',sans-serif;font-size:.75rem}
+
+/* ─── PRESENTER GUIDE ─── */
+.presenter{margin:.8rem 0;border:1px dashed var(--dim);border-radius:10px;overflow:hidden}
+.presenter-head{padding:.6rem 1rem;cursor:pointer;font-size:.82rem;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:.5rem;-webkit-user-select:none;user-select:none}
+.presenter-head::before{content:'🎤'}
+.presenter-body{display:none;padding:0 1rem .8rem;font-size:.82rem;color:var(--dim);line-height:1.6}
+.presenter.open .presenter-body{display:block}
+.presenter-body em{color:var(--muted);font-style:normal}
+
+/* ─── CHEATSHEET ─── */
+.cheat{background:var(--card);border:1px solid var(--primary);border-radius:var(--radius);padding:1.5rem;margin:1rem 0}
+.cheat pre{font-family:var(--mono);font-size:.88rem;line-height:2;color:var(--text)}
+.cheat .k{color:#60a5fa;font-weight:700}.cheat .v{color:var(--accent)}.cheat .d{color:var(--muted)}
+
+/* ─── MODES TABLE ─── */
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin:1rem 0}
+.mode-card{padding:1rem;border-radius:12px;border:1px solid var(--border);background:var(--surface);text-align:center}
+.mode-card .icon{font-size:1.8rem;margin-bottom:.4rem}
+.mode-card .name{font-weight:700;font-size:.95rem;margin-bottom:.3rem}
+.mode-card .desc{font-size:.78rem;color:var(--muted);line-height:1.4}
+.mode-ask{border-color:rgba(16,185,129,.3)}
+.mode-edit{border-color:rgba(245,158,11,.3)}
+.mode-agent{border-color:rgba(37,99,235,.3)}
+
+/* ─── FOOTER ─── */
+footer{text-align:center;padding:3rem 1.5rem;border-top:1px solid var(--border);color:var(--muted);font-size:.82rem}
+footer a{color:#60a5fa;text-decoration:none}
+footer .cmd{margin-top:.5rem;font-family:var(--mono);font-size:.72rem;opacity:.4}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:640px){
+  .hero h1{font-size:2rem}
+  .hero-meta{flex-direction:column;gap:.5rem}
+  .prompt pre{font-size:.75rem}
+  .diff{grid-template-columns:1fr}
+  .modes{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ HERO ═══════════ -->
+<section class="hero" id="top">
+  <div class="hero-badge">🤖 Workshop GitHub Copilot</div>
+  <h1>De <span class="c">prompt básico</span><br>a <span class="t">flujo profesional</span></h1>
+  <p>Chat · Instructions · Prompt Files · MCP. Todas las features de Copilot según la documentación oficial. 3 fases, 8 misiones, prompts listos para copiar.</p>
+  <a href="#fase1" class="btn-start">EMPEZAR ↓</a>
+  <div class="hero-meta">
+    <span>🎯 4 fases</span>
+    <span>🚀 9 misiones</span>
+    <span>⏱️ ~70 min</span>
+  </div>
+</section>
+
+<div class="container">
+
+<!-- ═══════════ ¿QUÉ ES COPILOT? ═══════════ -->
+<div style="margin:1.5rem 0 2rem;padding:1.5rem 1.8rem;background:var(--surface);border:1px solid var(--border);border-radius:14px">
+  <div style="font-weight:700;font-size:1.05rem;margin-bottom:.8rem">🤖 ¿Qué es GitHub Copilot?</div>
+  <p style="color:#94a3b8;line-height:1.7;margin-bottom:1rem">Asistente de IA de GitHub integrado directamente en VS Code. Entiende el contexto de tu proyecto, responde preguntas, propone cambios, ejecuta tareas y se conecta con herramientas externas — sin salir del editor.</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.8rem">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.9rem 1rem">
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#60a5fa;margin-bottom:.3rem">Copilot Completions</div>
+      <div style="color:#94a3b8;font-size:.85rem">Sugerencias de código en línea mientras escribes. Se activa solo.</div>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.9rem 1rem">
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#10b981;margin-bottom:.3rem">Copilot Chat</div>
+      <div style="color:#94a3b8;font-size:.85rem">Conversación en el panel lateral o inline (<kbd style="background:#1e2d4a;padding:.1rem .35rem;border-radius:4px;font-size:.75rem">Ctrl+I</kbd>). Tres modos: Ask, Plan, Agent.</div>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.9rem 1rem">
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#f59e0b;margin-bottom:.3rem">Contexto personalizable</div>
+      <div style="color:#94a3b8;font-size:.85rem">Custom instructions, prompt files y MCP amplían lo que Copilot sabe y puede hacer.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ FASE 1 ═══════════ -->
+<div class="fase" id="fase1">
+  <div class="fase-num fase-1">1</div>
+  <div><h2>Fundamentos</h2><div class="sub">Chat · Modos · Custom Instructions</div></div>
+</div>
+
+<!-- M1: CHAT BÁSICO -->
+<div class="mission" onclick="toggleMission(this)">
+  <div class="mission-head">
+    <span class="mission-icon">💬</span>
+    <div class="mission-info">
+      <span class="mission-tag tag-f">Chat</span>
+      <div class="mission-title">De prompt vago a prompt preciso</div>
+    </div>
+    <span class="mission-arrow">›</span>
+  </div>
+  <div class="mission-body"><div class="mission-content">
+    <p>El chat de Copilot es la puerta de entrada. Pero un prompt vago produce una respuesta vaga. La diferencia está en el contexto que le das.</p>
+    <p>Abre el panel de Copilot Chat en VS Code haciendo clic en el ícono de Copilot en la barra de título, o usa el inline chat con <strong>Ctrl+I</strong> (Mac: <strong>⌘I</strong>) directamente en el editor.</p>
+
+    <p><strong>Prompt vago — resultado impredecible:</strong></p>
+    <div class="prompt">
+      <div class="prompt-bar"><span class="prompt-label">Copilot Chat</span><button class="copy" onclick="copyP(event,this)">Copiar</button></div>
+      <pre>Crea Terraform para un archivo.</pre>
+    </div>
+
+    <p><strong>Prompt preciso con contexto — resultado consistente:</strong></p>
+    <div class="prompt">
+      <div class="prompt-bar"><span class="prompt-label">Copilot Chat</span><button class="copy" onclick="copyP(event,this)">Copiar</button></div>
+      <pre>Crea un proyecto Terraform con provider hashicorp/local que:
+- Genere un archivo JSON llamado config.json con campos: nombre_app, ambiente, version
+- Use variables.tf con description en cada variable
+- Incluya outputs.tf con la ruta del archivo generado
+- Nombres en español, Terraform 1.5 o superior
+Entrega main.tf, variables.tf y outputs.tf separados.</pre>
+    </div>
+
+    <div class="result">El prompt preciso produce archivos completos y bien estructurados desde la primera respuesta. Menos correcciones manuales.</div>
+
+    <p><strong>Usa variables de contexto para resultados aún mejores:</strong></p>
+    <p>Para adjuntar un archivo escribe <code>#</code> en el chat → selecciona el archivo del picker → Copilot inserta la referencia automáticamente. También puedes arrastrarlo al chat.</p>
+    <div class="prompt">
+      <div class="prompt-bar"><span class="prompt-label">Copilot Chat — adjunta main.tf con el picker (#)</span><button class="copy" onclick="copyP(event,this)">Copiar</button></div>
+      <pre>Revisa este archivo y asegúrate de que todas las variables tengan description y que los outputs tengan description también.</pre>
+    </div>
+    <div class="note">El chat mostrará la referencia como <code>#file:main.tf</code> automáticamente después de seleccionar con el picker. <strong>No se escribe el path a mano</strong> — se elige desde la UI.</div>
+
+    <div class="tip">Variables de contexto más usadas: <code>#file</code> (adjunta un archivo via picker), <code>#selection</code> (lo seleccionado en el editor), <code>@workspace</code> (búsqueda en todo el proyecto).</div>
+
+    <div class="presenter" onclick="togglePres(this)">
+      <div class="presenter-head">Guía del presentador</div>
+      <div class="presenter-body">
+        <em>"El mismo Copilot, dos respuestas completamente distintas. La diferencia no es Copilot — es el prompt."</em><br><br>
+        Ejecutar los dos prompts en vivo y comparar resultados. Mostrar cómo #file adjunta el contenido real del archivo al chat.<br><br>
+        Pregunta: <em>"¿Qué cambia cuando agregan contexto? ¿Qué más podrían agregar?"</em><br>~5 min
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<!-- M2: MODOS -->
+<div class="mission" onclick="toggleMission(this)">
+  <div class="mission-head">
+    <span class="mission-icon">🎛️</span>
+    <div class="mission-info">
+      <span class="mission-tag tag-f">Modos</span>
+      <div class="mission-title">Ask, Plan y Agent — cuándo usar cada uno</div>
+    </div>
+    <span class="mission-arrow">›</span>
+  </div>
+  <div class="mission-body"><div class="mission-content">
+    <p>Copilot tiene tres modos de trabajo según la documentación oficial. Elegir el correcto marca la diferencia entre una respuesta útil y una pérdida de tiempo.</p>
+
+    <div class="modes">
+      <div class="mode-card mode-ask">
+        <div class="icon">🔍</div>
+        <div class="name">Ask</div>
+        <div class="desc">Solo lectura. Analiza código, responde preguntas, explica conceptos. No modifica archivos.</div>
+      </div>
+      <div class="mode-card mode-edit">
+        <div class="icon">📋</div>
+        <div class="name">Plan</div>
+        <div class="desc">Crea un plan detallado antes de actuar. Solo lectura hasta que apruebes el plan. Ideal para tareas complejas.</div>
+      </div>
+      <div class="mode-card mode-agent">
+        <div class="icon">🤖</div>
+        <div class="name">Agent</div>
+        <div class="desc">Ejecuta tareas autónomas: crea, edita y borra archivos, corre comandos. Ideal para flujos completos.</div>
+      </div>
+    </div>
+
+    <p>Cambia de modo con el selector en la parte inferior del chat o el Command Palette.</p>
+
+    <p><strong>Ejemplo en Ask — para analizar sin riesgo:</strong></p>
+    <div class="prompt">
+      <div class="prompt-bar"><span class="prompt-label">Copilot Chat — modo Ask</span><button class="copy" onclick="copyP(event,this)">Copiar</button></div>
+      <pre>@workspace ¿Qué variables de Terraform están definidas pero no se usan en ningún recurso? Lista los archivos y líneas.</pre>
+    </div>
+
+    <p><strong>Ejemplo en Agent — para flujo completo:</strong></p>
+    <div class="prompt">
+      <div class="prompt-bar"><span class="prompt-label">Copilot Chat — modo Agent</span><button class="copy" onclick="copyP(event,this)">Copiar</button></div>
+      <pre>Crea la estructura completa de un proyecto Terraform con provider local:
+- main.tf, variables.tf, outputs.tf
+- .github/copilot-instructions.md con reglas básicas
+- README.md con descripcion, variables, outputs y comandos de uso
+Luego ejecuta terraform init y terraform validate para confirmar que está bien.</pre>
+    </div>
+
+    <div class="result">Agent mode crea todos los archivos y ejecuta los comandos Terraform sin intervención manual. Muestra el resultado en el chat.</div>
+
+    <div class="note">Documentación oficial: <strong>docs.github.com/en/copilot</strong> — sección "Using Copilot Chat in VS Code" → "Chat modes".</div>
+
+    <div class="presenter" onclick="togglePres(this)">
+      <div class="presenter-head">Guía del presentador</div>
+      <div class="presenter-body">
+        <em>"Ask es leer. Plan es planificar. Agent es actuar. Cada modo tiene su momento."</em><br><br>
+        Mostrar el selector de modos en la UI. Correr el ejemplo de Agent en vivo para que vean los archivos crearse solos.<br><br>
+        Pregunta: <em>"¿Cuándo usarían Ask en vez de Agent? ¿Qué pasa si Agent se equivoca?"</em><br>~5 min
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<!-- M3: CUSTOM INSTRUCTIONS -->
+<div class="mission" onclick="toggleMission(this)">
+  <div class="mission-head">
+    <span class="mission-icon">📜</span>
+    <div class="mission-info">
+      <span class="mission-tag tag-f">Custom Instructions</span>
+      <div class="mission-title">Reglas permanentes para todo el repositorio</div>
+    </div>
+    <span class="mission-arrow">›</span>
+  </div>
+  <div class="mission-body"><div class="mission-content">
+    <p>Sin instrucciones, Copilot responde en inglés, usa nombres genéricos y sigue sus propias convenciones. Con <code>copilot-instructions.md</code> le das las reglas del equipo de forma permanente.</p>
+
+    <p>Crear el archivo: <code>.github/copilot-instructions.md</code></p>
+
+    <div class="file-box">
+      <div class="file-bar"><span class="file-label">.github/copilot-instructions.md</span><button class="copy" onclick="copyF(event,this)">Copiar</button></div>
+      <pre># Instrucciones del proyecto
+
+- Responde siempre en español.
+- Explica los cambios con lenguaje para principiantes.
+- Usa nombres descriptivos en español para variables y recursos.
+- Para Terraform: usa provider hashicorp/local (sin cloud).
+- Todas las variables de Terraform deben tener description.
+- Los outputs de Terraform deben tener description.
+- Antes de proponer cambios grandes, explica qué vas a hacer y por qué.</pre>
+    </div>
+
+    <div class="diff">
+      <div class="diff-before">resource "local_file" "f" {
+  filename = "out.txt"
+  content  = var.c
+}</div>
+      <div class="diff-after">resource "local_file" "archivo_config" {
+  filename = var.nombre_archivo
+  content  = var.contenido_archivo
+}</div>
+    </div>
+
+    <p>Prueba que las instrucciones están activas:</p>
+    <div class="prompt">
+      <div class="prompt-bar"><span class="prompt-label">Copilot Chat</span><button class="copy" onclick="copyP(event,this)">Copiar</button></div>
+      <pre>Agrega un nuevo recurso local_file a main.tf para crear un archivo de logs.</pre>
+    </div>
+
+    <div class="result">Copilot aplica las reglas sin que las repitas: nombres en español, variables con description, explicación en español. Automático.</div>
+
+    <div class="tip">Las instrucciones se aplican a todos los miembros del equipo que clonen el repo. Es la forma de estandarizar cómo trabaja Copilot para todos.</div>
+
+    <div class="presenter" onclick="togglePres(this)">
+      <div class="presenter-head">Guía del presentador</div>
+      <div class="presenter-body">
+        <em>"No le repetí las reglas. Las leyó del repositorio. Cada respuesta las sigue automáticamente."</em><br><br>
+        Mostrar la diferencia antes/después en la respuesta de Copilot. Destacar que esto se versiona en Git junto con el código.<br><br>
+        Pregunta: <em>"¿Qué reglas agregarían para su equipo? ¿Framework, idioma, convenciones de testing?"</em><br>~5 min
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ═══════════ FASE 2 ═══════════ -->
+<div class="fase" id="fase2">
+  <div class="fase-num fase-2">2</div>
+  <div><h2>Personalización</h2><div class="sub">Instructions por archivo · Prompt Files · Contexto</div></div>
+</div>
+
+<!-- M4: INSTRUCTIONS POR ARCHIVO -->
+<div class="mission" onclick="toggleMission(this)">
+  <div class="mission-head">
+    <span class="mission-icon">🎯</span>
+    <div class="mission-info">
+      <span class="mission-tag tag-a">Instructions por archivo</span>
+      <div class="mission-title">Reglas específicas según el tipo de archivo</div>
+    </div>
+    <span class="mission-arrow">›</span>
+  </div>
+  <div class="mission-body"><div class="mission-content">
+    <p>Las instrucciones globales aplican a todo. Pero puedes crear instrucciones que solo se activan cuando Copilot trabaja con ciertos archivos, usando el campo <code>applyTo</code> en el frontmatter.</p>
+
+    <p>Crear carpeta y archivo: <code>.github/instructions/terraform.instructions.md</code></p>
+
+    <div class="file-box">
+      <div class="file-bar"><span class="file-label">.github/instructions/terraform.instructions.md</span><button class="copy" onclick="copyF(event,this)">Copiar</button></div>
+      <pre>---
+applyTo: "**/*.tf"
+---
+
+## Reglas para archivos Terraform
+
+- Usa provider hashicorp/local (sin cloud).
+- Estructura obligatoria: main.tf, variables.tf, outputs.tf.
+- Variables: siempre con `type`, `description` y `default` si aplica.
+- Outputs: siempre con `description`.
+- Naming: snake_case en español para todos los identificadores.
+- Bloque `terraform {}` con `required_providers` y `required_version`.
+- Nunca valores hardcodeados: usar variables o locals.</pre>
+    </div>
+
+    <p>Puedes tener una instruction por tipo de archivo o tecnología:</p>
+
+    <div class="wizard">
+      <div class="wiz-step"><span class="wiz-num">1</span> <code>terraform.instructions.md</code> → applyTo: <code>"**/*.tf"</code> <span class="check">✓</span></div>
+      <div class="wiz-step"><span class="wiz-num">2</span> <code>markdown.instructions.md</code> → applyTo: <code>"**/*.md"</code> <span class="check">✓</span></div>
+      <div class="wiz-step"><span class="wiz-num">3</span> <code>python.instructions.md</code> → applyTo: <code>"**/*.py"</code> <span class="check">✓</span></div>
+      <div class="wiz-step"><span class="wiz-num">4</span> <code>github-actions.instructions.md</code> → applyTo: <code>".github/workflows/*.yml"</code> <span class="check">✓</span></div>
+    </div>
+
+    <p>Prueba que la instrucción específica de Terraform se activa:</p>
+    <div class="prompt">
+      <div class="prompt-bar"><span class="prompt-label">Copilot Chat — con un .tf abierto en el editor</span><button class="copy" onclick="copyP(event,this)">Copiar</button></div>
+      <pre>Agrega una variable nueva llamada ambiente con valores permitidos dev, staging y prod.</pre>
+    </div>
+
+    <div class="result">Copilot genera la variable con type, description, default y una validation block con condition que restringe los valores — exactamente lo que dicta la instruction del archivo .tf.</div>
+
+    <div class="note">Documentación oficial: <strong>Customizing Copilot → Custom instructions → Scoped instructions</strong>. El campo <code>applyTo</code> acepta glob patterns estándar.</div>
+
+    <div class="presenter" onclick="togglePres(this)">
+      <div class="presenter-head">Guía del presentador</div>
+      <div class="presenter-body">
+        <em>"La instrucción global dice el idioma. La instrucción del archivo dice las reglas técnicas específicas."</em><br><br>
+        Abrir un .tf y uno .md en paralelo. Mostrar que en el .tf aplican las reglas de Terraform y en el .md aplican otras reglas diferentes.<br><br>
+        Pregunta: <em>"¿Qué rules agregarían para los workflows de GitHub Actions? ¿Para los tests?"</em><br>~5 min
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<!-- M5: PROMPT FILES -->
+<div class="mission" onclick="toggleMission(this)">
+  <div class="mission-head">
+    <span class="mission-icon">📋</span>
+    <div class="mission-info">
+      <span class="mission-tag tag-a">Prompt Files</span>
+      <div class="mission-title">Recetas reutilizables para tareas comunes</div>
+    </div>
+    <span class="mission-arrow">›</span>
+  </div>
+  <div class="mission-body"><div class="mission-content">
+    <p>Un prompt que tardaste 10 minutos en refinar no debería vivir solo en tu historial de chat. Los Prompt Files son prompts reutilizables versionados en el repo.</p>
+
+    <p>Crear: <code>.github/prompts/crear-terraform.prompt.md</code></p>
+
+    <div class="file-box">
+      <div class="file-bar"><span class="file-label">.github/prompts/crear-terraform.prompt.md</span><button class="copy" onclick="copyF(event,this)">Copiar</button></div>
+      <pre>---
+description: "Genera archivos Terraform completos desde una descripción"
+agent: "agent"
+---
+
+El usuario te dará una descripción de lo que quiere crear con Terraform.
+
+Antes de generar código:
+1. Usa MCP de Terraform si está disponible para validar estructura.
+2. Confirma que el provider sea hashicorp/local.
+
+Genera los siguientes archivos:
+- main.tf con provider y recursos
+- variables.tf con todas las variables con description
+- outputs.tf con todos los outputs con description
+
+Explica cada bloque en español para principiantes.
+Termina con los comandos de validación a ejecutar.</pre>
+    </div>
+
+    <p>Crea un segundo prompt para documentación:</p>
+
+    <div class="file-box">
+      <div class="file-bar"><span class="file-label">.github/prompts/generar-readme.prompt.md</span><button class="copy" onclick="copyF(event,this)">Copiar</button></div>
+      <pre>---
+description: "Genera README.md completo para un módulo Terraform"
+agent: "ask"
+---
+
+Analiza los archivos .tf del proyecto actual y genera un README.md que incluya:
+
+1. **Descripción** — qué hace este módulo en una línea.
+2. **Prerrequisitos** — versiones de Terraform y providers.
+3. **Variables** — tabla con nombre, tipo, descripción y default.
+4. **Outputs** — tabla con nombre y descripción.
+5. **Uso básico** — ejemplo de código HCL mínimo.
+6. **Comandos** — init, validate, plan, apply, destroy.
+
+Lenguaje: español. Tono: claro para principiantes.</pre>
+    </div>
+
+    <p>Para usar un Prompt File, escribe su nombre en el chat precedido de <code>/</code> o selecciónalo desde el selector de prompts:</p>
+
+    <div class="prompt">
+      <div class="prompt-bar"><span class="prompt-label">Copilot Chat</span><button class="copy" onclick="copyP(event,this)">Copiar</button></div>
+      <pre>/crear-terraform Crea un módulo para generar un archivo JSON de configuración con campos: nombre_app, ambiente, version y puerto.</pre>
+    </div>
+
+    <div class="result">Copilot ejecuta el prompt con todo el contexto predefinido. Sin repetir instrucciones, sin olvidar reglas. Consistente entre todos los miembros del equipo.</div>
+
+    <div class="tip">El campo <code>agent</code> del frontmatter puede ser <code>ask</code>, <code>agent</code> o <code>plan</code>. Elige según el nivel de autonomía que quieres para esa tarea.</div>
+
+    <div class="presenter" onclick="togglePres(this)">
+      <div class="presenter-head">Guía del presentador</div>
+      <div class="presenter-body">
+        <em>"El prompt que tardé 10 minutos en refinar ahora es un archivo en el repo. Cualquier dev del equipo lo usa con /crear-terraform."</em><br><br>
+        Mostrar el selector de prompts en la UI. Ejecutar /crear-terraform en vivo y comparar con el mismo pedido sin el prompt file.<br><br>
+        Pregunta: <em>"¿Qué tareas repetitivas de su equipo se convertirían en prompt files?"</em><br>~5 min
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<!-- M6: VARIABLES DE CONTEXTO -->
+<div class="mission" onclick="toggleMission(this)">
+  <div class="mission-head">
+    <span class="mission-icon">🔗</span>
+    <div class="mission-info">
+      <span class="mission-tag tag-a">Variables de contexto</span>
+      <div class="mission-title">Dile exactamente a Copilot qué mirar</div>
+    </div>
+    <span class="mission-arrow">›</span>
+  </div>
+  <div class="mission-body"><div class="mission-content">
+    <p>Copilot no lee todo el proyecto en cada pregunta. Tú le indicas qué contexto necesita con variables. Esto mejora la precisión y reduce respuestas irrelevantes.</p>
+
+    <div class="wizard">
+      <div class="wiz-step"><span class="wiz-num">#</span> <code>#file</code> — escribe <code>#</code> → picker → seleccionas el archivo → inserta la referencia automáticamente <span class="check">✓</span></div>
+      <div class="wiz-step"><span class="wiz-num">#</span> <code>#selection</code> — usa lo que tienes seleccionado en el editor <span class="check">✓</span></div>
+      <div class="wiz-step"><span class="wiz-num">#</span> <code>#sym</code> — incluye el símbolo actual (función, clase, variable) en el contexto <span class="check">✓</span></div>
+      <div class="wiz-step"><span class="wiz-num">@</span> <code>@workspace</code> — busca en todo el proyecto (más lento, más completo) <span class="check">✓</span></div>
+      <div class="wiz-step"><span class="wiz-num">@</span> <code>@github</code> — busca en repositorios, issues y PRs de GitHub <span class="check">✓</span></div>
+    </div>
+
+    <p><strong>Comparar dos archivos</strong> — adjunta cada uno con el picker (#) y luego escribe la pregunta:</p>
+    <div class="prompt">
+      <div class="prompt-bar"><span class="prompt-label">Copilot Chat — adjunta main.tf y variables.tf con el picker</span><button class="copy" onclick="copyP(event,this)">Copiar</button></div>
+      <pre>¿Hay variables definidas en variables.tf que no se usan en main.tf? Lista cuáles son.</pre>
+    </div>
+
+    <p><strong>Revisar selección específica</strong> — selecciona el bloque en el editor, luego en el chat:</p>
+    <div class="prompt">
+      <div class="prompt-bar"><span class="prompt-label">Copilot Chat — con código seleccionado en el editor</span><button class="copy" onclick="copyP(event,this)">Copiar</button></div>
+      <pre>Explica qué hace este bloque de Terraform y si hay alguna mejora posible.</pre>
+    </div>
+
+    <p><strong>Buscar en todo el proyecto:</strong></p>
+    <div class="prompt">
+      <div class="prompt-bar"><span class="prompt-label">Copilot Chat</span><button class="copy" onclick="copyP(event,this)">Copiar</button></div>
+      <pre>@workspace ¿En qué archivos .tf se usa el recurso local_file y cuántas instancias hay?</pre>
+    </div>
+
+    <div class="result">Respuestas precisas porque Copilot tiene exactamente el contexto relevante, no más ni menos. Menos alucinaciones, más utilidad.</div>
+
+    <div class="note"><code>#file</code> siempre se selecciona desde el picker o arrastrando el archivo al chat. Lo que ves en el input (<code>#file:main.tf</code>) es la referencia que Copilot inserta automáticamente, no algo que se escribe a mano.</div>
+
+    <div class="tip">Usa <code>#file</code> (picker) para archivos concretos que conoces. Usa <code>@workspace</code> cuando no sabes en qué archivo está lo que buscas.</div>
+
+    <div class="presenter" onclick="togglePres(this)">
+      <div class="presenter-head">Guía del presentador</div>
+      <div class="presenter-body">
+        <em>"No le dije 'mira el proyecto'. Le dije exactamente qué mirar. La respuesta es mejor porque el contexto es mejor."</em><br><br>
+        Hacer en vivo la comparación: misma pregunta con @workspace vs con #file específico. Mostrar diferencia de velocidad y precisión.<br>~3 min
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ═══════════ FASE 3 ═══════════ -->
+<div class="fase" id="fase3">
+  <div class="fase-num fase-3">3</div>
+  <div><h2>Extensibilidad</h2><div class="sub">MCP · Agent mode avanzado</div></div>
+</div>
+
+<!-- M7: MCP -->
+<div class="mission" onclick="toggleMission(this)">
+  <div class="mission-head">
+    <span class="mission-icon">🔌</span>
+    <div class="mission-info">
+      <span class="mission-tag tag-e">MCP</span>
+      <div class="mission-title">Conecta Copilot con herramientas externas</div>
+    </div>
+    <span class="mission-arrow">›</span>
+  </div>
+  <div class="mission-body"><div class="mission-content">
+    <p>Copilot por defecto no sabe qué versión tiene hoy el provider de Terraform. Con MCP le das acceso a fuentes externas en tiempo real: registries, APIs, bases de datos, documentación.</p>
+
+    <p>Configurar MCP en VS Code creando el archivo <code>.vscode/mcp.json</code> en el repo. VS Code detecta el archivo y muestra el botón <strong>Start</strong> junto al bloque de configuración:</p>
+
+    <div class="file-box">
+      <div class="file-bar"><span class="file-label">.vscode/mcp.json</span><button class="copy" onclick="copyF(event,this)">Copiar</button></div>
+      <pre>{
+  "servers": {
+    "terraform": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "hashicorp/terraform-mcp-server"],
+      "type": "stdio"
+    }
+  }
+}</pre>
+    </div>
+
+    <p>Pasos para agregar el servidor MCP desde la UI:</p>
+
+    <div class="wizard">
+      <div class="wiz-step"><span class="wiz-num">1</span> Crear <code>.vscode/mcp.json</code> con la configuración del servidor <span class="check">✓</span></div>
+      <div class="wiz-step"><span class="wiz-num">2</span> Guardar el archivo → VS Code muestra el botón <strong>Start</strong> junto al bloque de servidores <span class="check">✓</span></div>
+      <div class="wiz-step"><span class="wiz-num">3</span> Clic en <strong>Start</strong> → VS Code descubre las herramientas del servidor <span class="check">✓</span></div>
+      <div class="wiz-step"><span class="wiz-num">4</span> Abrir Copilot Chat → seleccionar modo <strong>Agent</strong> <span class="check">✓</span></div>
+      <div class="wiz-step"><span class="wiz-num">5</span> Clic en el ícono de herramientas para ver los servidores activos <span class="check">✓</span></div>
+    </div>
+
+    <p>Ahora usar MCP en Agent mode para pre-revisión:</p>
+
+    <div class="prompt">
+      <div class="prompt-bar"><span class="prompt-label">Copilot Chat — modo Agent + MCP activo</span><button class="copy" onclick="copyP(event,this)">Copiar</button></div>
+      <pre>Usa MCP de Terraform para revisar el proyecto actual.
+Detecta:
+- Variables definidas pero no usadas en ningún recurso
+- Referencias a recursos que no existen en el proyecto
+- Outputs que referencian atributos incorrectos
+- Buenas prácticas que faltan (description, required_version)
+Dame un reporte con severidad: ERROR, WARNING, INFO.</pre>
+    </div>
+
+    <div class="result">MCP consulta la estructura del Terraform actual y el Registry en tiempo real. Detecta problemas antes de que terraform validate los encuentre — con mayor contexto y explicaciones.</div>
+
+    <p>Usar MCP para generar con documentación actualizada:</p>
+    <div class="prompt">
+      <div class="prompt-bar"><span class="prompt-label">Copilot Chat — modo Agent</span><button class="copy" onclick="copyP(event,this)">Copiar</button></div>
+      <pre>Consulta el MCP de Terraform para obtener la documentación actualizada del recurso local_file del provider hashicorp/local. Luego genera un ejemplo completo con todos los argumentos opcionales documentados.</pre>
+    </div>
+
+    <div class="note">Requisito: Docker instalado y corriendo. El servidor MCP de Terraform es oficial de HashiCorp. Hay servidores MCP para GitHub, Atlassian, bases de datos, AWS Docs y más en el marketplace de VS Code.</div>
+
+    <div class="tip">MCP no reemplaza <code>terraform validate</code>. MCP complementa el análisis antes de llegar a Terraform CLI. El flujo correcto: MCP → validate → plan → apply.</div>
+
+    <div class="presenter" onclick="togglePres(this)">
+      <div class="presenter-head">Guía del presentador</div>
+      <div class="presenter-body">
+        <em>"Documentación oficial del provider, leída en tiempo real desde el Registry. No de su entrenamiento de hace meses."</em><br><br>
+        Mostrar el panel MCP en VS Code y el servidor activo. Si alguien no tiene Docker, mostrar el resultado esperado sin ejecutar.<br><br>
+        Pregunta: <em>"¿Qué otros servidores MCP les serían útiles? ¿GitHub para ver issues? ¿Confluence para leer specs?"</em><br>~7 min
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<!-- M8: FLUJO COMPLETO -->
+<div class="mission" onclick="toggleMission(this)">
+  <div class="mission-head">
+    <span class="mission-icon">🔄</span>
+    <div class="mission-info">
+      <span class="mission-tag tag-e">Flujo completo</span>
+      <div class="mission-title">De zero a repo profesional con Copilot</div>
+    </div>
+    <span class="mission-arrow">›</span>
+  </div>
+  <div class="mission-body"><div class="mission-content">
+    <p>Todas las piezas juntas en el orden correcto. Este es el flujo que combina instrucciones, prompt files y MCP para ir de repo vacío a proyecto Terraform funcional y documentado.</p>
+
+    <p><strong>Paso 1 — Crear estructura con Agent:</strong></p>
+    <div class="prompt">
+      <div class="prompt-bar"><span class="prompt-label">Copilot Chat — modo Agent</span><button class="copy" onclick="copyP(event,this)">Copiar</button></div>
+      <pre>Crea la estructura completa de un proyecto Terraform educativo desde cero:
+- main.tf, variables.tf, outputs.tf con provider hashicorp/local
+- .github/copilot-instructions.md con reglas: español, principiantes, provider local
+- .github/instructions/terraform.instructions.md con applyTo "**/*.tf"
+- .github/prompts/crear-terraform.prompt.md y generar-readme.prompt.md
+- README.md básico
+Luego ejecuta terraform init y terraform validate.</pre>
+    </div>
+
+    <p><strong>Paso 2 — Agregar funcionalidad con Prompt File:</strong></p>
+    <div class="prompt">
+      <div class="prompt-bar"><span class="prompt-label">Copilot Chat</span><button class="copy" onclick="copyP(event,this)">Copiar</button></div>
+      <pre>/crear-terraform Genera un archivo JSON de configuración de aplicación con campos: nombre_app, ambiente (dev/staging/prod), version y lista de features habilitadas.</pre>
+    </div>
+
+    <p><strong>Paso 3 — Pre-revisión con MCP:</strong></p>
+    <div class="prompt">
+      <div class="prompt-bar"><span class="prompt-label">Copilot Chat — modo Agent + MCP</span><button class="copy" onclick="copyP(event,this)">Copiar</button></div>
+      <pre>Usa MCP de Terraform para hacer una revisión de calidad del proyecto. Luego aplica todas las correcciones que encuentres y ejecuta terraform validate y terraform plan.</pre>
+    </div>
+
+    <p><strong>Paso 4 — Documentar con Prompt File:</strong></p>
+    <div class="prompt">
+      <div class="prompt-bar"><span class="prompt-label">Copilot Chat</span><button class="copy" onclick="copyP(event,this)">Copiar</button></div>
+      <pre>/generar-readme</pre>
+    </div>
+
+    <div class="result">Un proyecto Terraform completo, validado, documentado y con toda la estructura de Copilot configurada. Tiempo aproximado: 10 minutos. Sin escribir código manualmente.</div>
+
+    <div class="presenter" onclick="togglePres(this)">
+      <div class="presenter-head">Guía del presentador</div>
+      <div class="presenter-body">
+        <em>"Primero armamos el contexto (instrucciones). Luego usamos ese contexto para trabajar mejor (prompt files). Después extendemos capacidades (MCP). Es un flujo que se construye encima de sí mismo."</em><br><br>
+        Ejecutar el flujo completo en vivo con un repo vacío. Mostrar el git log al final con todos los archivos creados.<br><br>
+        Pregunta final: <em>"¿Cuántos de ustedes van a configurar copilot-instructions.md esta semana? ¿Y el primer prompt file?"</em><br>~8 min
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ═══════════ FASE 4 ═══════════ -->
+<div class="fase" id="fase4">
+  <div class="fase-num fase-4">4</div>
+  <div><h2>Laboratorio Final</h2><div class="sub">Instructions · Prompts · MCP · S3 · MiniStack — flujo completo</div></div>
+</div>
+
+<!-- LAB FINAL: WEB EN S3 + MINISTACK -->
+<div class="mission" onclick="toggleMission(this)">
+  <div class="mission-head">
+    <span class="mission-icon">🌐</span>
+    <div class="mission-info">
+      <span class="mission-tag tag-lab">Lab Final</span>
+      <div class="mission-title">Todo junto: Instructions + Prompts + MCP + S3 con MiniStack</div>
+    </div>
+    <span class="mission-arrow">›</span>
+  </div>
+  <div class="mission-body"><div class="mission-content">
+    <p>El laboratorio final integra <strong>todo</strong> lo aprendido en el workshop: instrucciones globales (<code>copilot-instructions.md</code>), instrucciones por tipo de archivo con <code>applyTo</code>, prompt files reutilizables, MCP para documentación en tiempo real y Agent mode. MiniStack emula S3 localmente — gratuito, sin cuenta, sin API key.</p>
+    <p><strong>¿Qué es MiniStack?</strong> Alternativa open-source (MIT) a LocalStack. 60+ servicios de AWS en un solo contenedor Docker. Compatible con el provider <code>hashicorp/aws</code> de Terraform sin modificaciones. Arranque en ~2 segundos, ~30 MB RAM. <a href="https://ministack.org" target="_blank" style="color:#60a5fa">ministack.org</a></p>
+
+    <p><strong>Paso 0 — Levantar MiniStack:</strong></p>
+    <div class="prompt">
+      <div class="prompt-bar"><span class="prompt-label" style="color:var(--accent)">Terminal</span><button class="copy" onclick="copyP(event,this)">Copiar</button></div>
+      <pre>docker run -d -p 4566:4566 --name ministack ministackorg/ministack</pre>
+    </div>
+    <div class="note">Mismo puerto 4566 que LocalStack — drop-in replacement. Sin cuenta, sin API key, sin telemetría. Verificar: <code>curl http://localhost:4566/_ministack/health</code></div>
+
+    <p><strong>Paso 1 — Crear instrucciones globales del proyecto:</strong></p>
+    <p>Antes de generar código, configuramos el contexto de Copilot. Estas reglas aplican a <em>todas</em> las conversaciones del repo desde que se guarda el archivo:</p>
+
+    <div class="file-box">
+      <div class="file-bar"><span class="file-label">.github/copilot-instructions.md</span><button class="copy" onclick="copyF(event,this)">Copiar</button></div>
+      <pre># Reglas del Lab — Terraform + MiniStack
+
+- Responde siempre en español
+- Usamos MiniStack como emulador local de AWS (puerto 4566)
+- El provider AWS apunta a http://localhost:4566 — nunca a AWS real
+- Credenciales de prueba: access_key = "test", secret_key = "test"
+- Los buckets S3 son para web estática pública (block_public_acls = false)
+- Explica cada bloque de Terraform para principiantes
+- Nombres de recursos en snake_case</pre>
+    </div>
+    <div class="result">Guardado en <code>.github/copilot-instructions.md</code>. Copilot aplica estas reglas en cada conversación del repo — español, MiniStack, credenciales de prueba y explicaciones para principiantes.</div>
+
+    <p><strong>Paso 2 — Instrucciones específicas para archivos Terraform:</strong></p>
+    <p>Con <code>applyTo</code>, estas reglas solo se activan cuando Copilot trabaja sobre archivos <code>.tf</code>. Precisión sin ruido en otros tipos de archivo:</p>
+
+    <div class="file-box">
+      <div class="file-bar"><span class="file-label">.github/instructions/terraform.instructions.md</span><button class="copy" onclick="copyF(event,this)">Copiar</button></div>
+      <pre>---
+applyTo: "**/*.tf"
+---
+
+# Convenciones Terraform — Lab MiniStack
+
+- Todas las variables y outputs tienen `description`
+- El provider aws siempre incluye `skip_credentials_validation = true`
+- Los buckets de laboratorio tienen `force_destroy = true`
+- `depends_on` explícito cuando aws_s3_bucket_policy depende de aws_s3_bucket_public_access_block
+- Terraform >= 1.5, provider hashicorp/aws ~> 5.0
+- Sin módulos externos — archivos planos del laboratorio</pre>
+    </div>
+    <div class="result">Guardado en <code>.github/instructions/terraform.instructions.md</code>. Cada vez que Copilot trabaje sobre un <code>.tf</code>, aplicará <code>force_destroy</code>, <code>description</code> en variables y <code>depends_on</code> correcto — sin pedírselo.</div>
+
+    <p><strong>Paso 3 — Crear el prompt file del despliegue:</strong></p>
+    <p>Encapsulamos toda la lógica en un prompt file versionado en el repo. Cualquier miembro del equipo lo invoca con <code>/desplegar-web-s3</code> — sin repetir instrucciones:</p>
+
+    <div class="file-box">
+      <div class="file-bar"><span class="file-label">.github/prompts/desplegar-web-s3.prompt.md</span><button class="copy" onclick="copyF(event,this)">Copiar</button></div>
+      <pre>---
+description: "Despliega una web estática en S3 con MiniStack"
+agent: "agent"
+---
+
+Usa MCP de Terraform para consultar la documentación actualizada del provider hashicorp/aws.
+
+Genera estos archivos en la carpeta lab-s3-ministack/:
+
+**providers.tf** — provider aws apuntando a MiniStack:
+- endpoint S3: http://localhost:4566
+- region us-east-1, access_key y secret_key = "test"
+- skip_credentials_validation = true, skip_requesting_account_id = true
+
+**main.tf** — recursos en orden:
+1. aws_s3_bucket (force_destroy = true)
+2. aws_s3_bucket_website_configuration (index_document: index.html)
+3. aws_s3_bucket_public_access_block (todos los flags en false)
+4. aws_s3_bucket_policy (GetObject público, depends_on en el bloque anterior)
+5. aws_s3_object (sube web/index.html, content_type = "text/html")
+
+**variables.tf** — variable nombre_bucket con description y default "hola-terraform-ia"
+**outputs.tf** — output url_web con la URL del objeto en MiniStack
+
+Explica cada recurso en español para principiantes al terminar.</pre>
+    </div>
+    <div class="result">Prompt file listo en <code>.github/prompts/desplegar-web-s3.prompt.md</code>. Disponible como <code>/desplegar-web-s3</code> en cualquier chat de Copilot dentro del repo. Copilot ya tiene todo el contexto — instrucciones globales, reglas por archivo y la lógica del despliegue.</div>
+
+    <p><strong>Paso 4 — Invocar el prompt file con MCP activo:</strong></p>
+    <p>Con las instrucciones y el prompt file configurados, una sola línea es suficiente. Copilot ya conoce el contexto completo:</p>
+    <div class="prompt">
+      <div class="prompt-bar"><span class="prompt-label">Copilot Chat — modo Agent + MCP Terraform activo</span><button class="copy" onclick="copyP(event,this)">Copiar</button></div>
+      <pre>/desplegar-web-s3</pre>
+    </div>
+    <div class="result">El prompt file ya tiene todo el contexto: provider, endpoint MiniStack, estructura de archivos, orden de recursos y convenciones en español. El MCP trae la documentación más reciente del provider. Una línea reemplaza un prompt de 15 líneas — y es consistente para todo el equipo.</div>
+
+    <p>Copilot genera los cuatro archivos con la documentación más reciente del provider:</p>
+
+    <div class="file-box">
+      <div class="file-bar"><span class="file-label">lab-s3-ministack/providers.tf</span><button class="copy" onclick="copyF(event,this)">Copiar</button></div>
+      <pre>terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
+provider "aws" {
+  region                      = "us-east-1"
+  access_key                  = "test"
+  secret_key                  = "test"
+  skip_credentials_validation = true
+  skip_requesting_account_id  = true
+  skip_metadata_api_check     = true
+  endpoints {
+    s3 = "http://localhost:4566"
+  }
+}</pre>
+    </div>
+
+    <div class="file-box">
+      <div class="file-bar"><span class="file-label">lab-s3-ministack/main.tf</span><button class="copy" onclick="copyF(event,this)">Copiar</button></div>
+      <pre>resource "aws_s3_bucket" "web" {
+  bucket        = var.nombre_bucket
+  force_destroy = true
+}
+
+resource "aws_s3_bucket_website_configuration" "web" {
+  bucket = aws_s3_bucket.web.id
+  index_document {
+    suffix = "index.html"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "web" {
+  bucket                  = aws_s3_bucket.web.id
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+resource "aws_s3_bucket_policy" "web" {
+  bucket     = aws_s3_bucket.web.id
+  depends_on = [aws_s3_bucket_public_access_block.web]
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = "*"
+      Action    = "s3:GetObject"
+      Resource  = "${aws_s3_bucket.web.arn}/*"
+    }]
+  })
+}
+
+resource "aws_s3_object" "pagina" {
+  bucket       = aws_s3_bucket.web.id
+  key          = "index.html"
+  content      = file("${path.module}/web/index.html")
+  content_type = "text/html"
+}</pre>
+    </div>
+
+    <div class="file-box">
+      <div class="file-bar"><span class="file-label">lab-s3-ministack/variables.tf</span><button class="copy" onclick="copyF(event,this)">Copiar</button></div>
+      <pre>variable "nombre_bucket" {
+  description = "Nombre del bucket S3 para la web estática"
+  type        = string
+  default     = "hola-terraform-ia"
+}</pre>
+    </div>
+
+    <div class="file-box">
+      <div class="file-bar"><span class="file-label">lab-s3-ministack/outputs.tf</span><button class="copy" onclick="copyF(event,this)">Copiar</button></div>
+      <pre>output "url_web" {
+  description = "URL de la web estática en MiniStack"
+  value       = "http://localhost:4566/${var.nombre_bucket}/index.html"
+}</pre>
+    </div>
+    <div class="result">4 archivos Terraform generados con las convenciones del lab: variables con <code>description</code>, <code>force_destroy = true</code> y <code>depends_on</code> correcto en la policy. Todo gracias a las instrucciones de <code>applyTo</code> — sin pedirlo explícitamente.</div>
+
+    <p><strong>Paso 5 — Crear la página web con Agent mode:</strong></p>
+    <div class="prompt">
+      <div class="prompt-bar"><span class="prompt-label">Copilot Chat — modo Agent</span><button class="copy" onclick="copyP(event,this)">Copiar</button></div>
+      <pre>Crea el archivo lab-s3-ministack/web/index.html. El contenido debe decir:
+"Hola, soy Terraform potenciado con IA 🤖"
+
+Estilo dark moderno sin frameworks externos:
+- Fondo #050a18, tarjeta centrada con sombra azul
+- "Terraform" en azul (#60a5fa), "IA" en verde (#10b981), tipografía system-ui
+- Animación fade-in sutil de entrada
+- Tres pills al pie: "🏗️ Terraform", "🪣 S3 + MiniStack", "🤖 GitHub Copilot"
+- Completamente responsive, sin dependencias externas</pre>
+    </div>
+
+    <div class="file-box">
+      <div class="file-bar"><span class="file-label">lab-s3-ministack/web/index.html</span><button class="copy" onclick="copyF(event,this)">Copiar</button></div>
+      <pre>&lt;!DOCTYPE html&gt;
+&lt;html lang="es"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;meta name="viewport" content="width=device-width,initial-scale=1.0"&gt;
+  &lt;title&gt;Hola Terraform IA&lt;/title&gt;
+  &lt;style&gt;
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#050a18;color:#e2e8f0;
+         font-family:system-ui,sans-serif;
+         display:flex;align-items:center;
+         justify-content:center;min-height:100vh}
+    .card{text-align:center;padding:3rem 4rem;
+          background:#0c1425;border:1px solid #1e2d4a;
+          border-radius:24px;max-width:520px;
+          box-shadow:0 0 80px rgba(37,99,235,.18);
+          animation:fi .8s ease}
+    @keyframes fi{
+      from{opacity:0;transform:translateY(20px)}
+      to{opacity:1;transform:translateY(0)}
+    }
+    h1{font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;
+       line-height:1.2;margin-bottom:.5rem}
+    .blue{color:#60a5fa}.green{color:#10b981}
+    .sub{color:#64748b;font-size:.9rem;margin-top:.5rem}
+    .pills{display:flex;gap:.7rem;justify-content:center;
+           margin-top:1.4rem;flex-wrap:wrap}
+    .pill{padding:.3rem .9rem;border-radius:99px;
+          font-size:.75rem;font-weight:600}
+    .p1{background:rgba(16,185,129,.1);color:#10b981;
+        border:1px solid rgba(16,185,129,.25)}
+    .p2{background:rgba(245,158,11,.1);color:#f59e0b;
+        border:1px solid rgba(245,158,11,.25)}
+    .p3{background:rgba(37,99,235,.1);color:#60a5fa;
+        border:1px solid rgba(37,99,235,.25)}
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;div class="card"&gt;
+    &lt;h1&gt;Hola, soy
+      &lt;span class="blue"&gt;Terraform&lt;/span&gt;&lt;br&gt;
+      potenciado con &lt;span class="green"&gt;IA&lt;/span&gt; 🤖
+    &lt;/h1&gt;
+    &lt;div class="sub"&gt;Generado por GitHub Copilot · S3 · MiniStack&lt;/div&gt;
+    &lt;div class="pills"&gt;
+      &lt;span class="pill p1"&gt;🏗️ Terraform&lt;/span&gt;
+      &lt;span class="pill p2"&gt;🪣 S3 + MiniStack&lt;/span&gt;
+      &lt;span class="pill p3"&gt;🤖 GitHub Copilot&lt;/span&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+    </div>
+    <div class="result">Página creada en <code>lab-s3-ministack/web/index.html</code>. Lista para ser subida al bucket por el recurso <code>aws_s3_object</code>.</div>
+
+    <p><strong>Paso 6 — Desplegar con Terraform:</strong></p>
+    <div class="prompt">
+      <div class="prompt-bar"><span class="prompt-label">Copilot Chat — modo Agent</span><button class="copy" onclick="copyP(event,this)">Copiar</button></div>
+      <pre>Entra a la carpeta lab-s3-ministack, ejecuta terraform init y terraform apply -auto-approve. Luego muestra el valor del output url_web.</pre>
+    </div>
+
+    <div class="wizard">
+      <div class="wiz-step"><span class="wiz-num">1</span> <code>terraform init</code> — descarga el provider hashicorp/aws <span class="check">✓</span></div>
+      <div class="wiz-step"><span class="wiz-num">2</span> <code>terraform apply -auto-approve</code> — crea bucket, policy y sube el HTML <span class="check">✓</span></div>
+      <div class="wiz-step"><span class="wiz-num">3</span> Abrir <code>http://localhost:4566/hola-terraform-ia/index.html</code> en el navegador <span class="check">✓</span></div>
+      <div class="wiz-step"><span class="wiz-num">4</span> Limpiar: <code>terraform destroy -auto-approve</code> → <code>docker stop ministack</code> <span class="check">✓</span></div>
+    </div>
+
+    <div class="result">La web dice "Hola, soy Terraform potenciado con IA 🤖" — generada con Copilot siguiendo tus instrucciones globales y de archivo, invocada con tu prompt file, documentación traída en tiempo real por MCP. Alojada en S3 local con MiniStack. Flujo completo de punta a punta: ~15 minutos.</div>
+
+    <div class="tip">Para apuntar a AWS real: elimina el bloque <code>endpoints</code> del provider y usa credenciales reales. El HCL de los recursos es idéntico — cero cambios en main.tf, variables.tf ni outputs.tf.</div>
+
+    <div class="note">MiniStack es MIT y gratuito para siempre. 60+ servicios AWS, ~2s de arranque, ~30 MB RAM en idle. Sin cuenta ni API key. Alternativa directa a LocalStack Community (que pasó a ser pago).</div>
+
+    <div style="margin:1.5rem 0;padding:1.5rem;background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(219,39,119,.1));border:1px solid rgba(124,58,237,.35);border-radius:14px;text-align:center">
+      <div style="font-size:2rem;margin-bottom:.5rem">🎉</div>
+      <div style="font-weight:700;color:#a78bfa;font-size:1.1rem;margin-bottom:.5rem">¡Lab completado!</div>
+      <div style="color:#94a3b8;font-size:.9rem;line-height:1.7">
+        Instrucciones globales · reglas con <code style="color:#c4b5fd">applyTo</code> · prompt file reutilizable<br>
+        MCP en tiempo real · Agent mode · web desplegada en S3 con MiniStack<br>
+        <strong style="color:#c4b5fd">Todo el workshop en un solo lab.</strong>
+      </div>
+    </div>
+
+    <div class="presenter" onclick="togglePres(this)">
+      <div class="presenter-head">Guía del presentador</div>
+      <div class="presenter-body">
+        <em>"Primero pusimos el contexto: instrucciones globales, reglas por archivo, prompt reutilizable. Luego Copilot usó todo ese contexto con una sola invocación. Esa es la diferencia entre usar Copilot y configurar Copilot."</em><br><br>
+        Pre-requisitos: Docker corriendo, Terraform instalado, MCP de Terraform activo en VS Code.<br>
+        Crear los 3 archivos de configuración en vivo (pasos 1–3). Luego ejecutar <code>/desplegar-web-s3</code> y mostrar cómo Copilot ya sabe todo el contexto sin un prompt largo.<br><br>
+        Pregunta de cierre: <em>"¿Qué cambiarían para apuntar a AWS real? Solo quitar el bloque <code>endpoints</code> del provider. El HCL de main.tf, variables.tf y outputs.tf es idéntico."</em><br>~15 min
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ═══════════ CHEATSHEET ═══════════ -->
+<div class="fase">
+  <div class="fase-num" style="background:var(--accent)">∑</div>
+  <div><h2>La fórmula completa</h2><div class="sub">GitHub Copilot según la documentación oficial</div></div>
+</div>
+
+<div class="cheat">
+  <pre><span class="k">Ask mode</span>        <span class="d">=</span> <span class="v">analizar y responder</span>     <span class="d">→ sin modificar archivos</span>
+<span class="k">Plan mode</span>       <span class="d">=</span> <span class="v">planear antes de actuar</span>  <span class="d">→ apruebes, luego edita</span>
+<span class="k">Agent mode</span>      <span class="d">=</span> <span class="v">ejecutar tareas</span>          <span class="d">→ crea, edita, corre comandos</span>
+
+<span class="k">copilot-instructions.md</span>  <span class="d">=</span> <span class="v">reglas para todo el repo</span>  <span class="d">→ siempre activas</span>
+<span class="k">instructions/*.md</span>        <span class="d">=</span> <span class="v">reglas por tipo de archivo</span> <span class="d">→ activadas por applyTo</span>
+<span class="k">prompts/*.md</span>             <span class="d">=</span> <span class="v">recetas reutilizables</span>     <span class="d">→ invocadas con /nombre</span>
+
+<span class="k">#file</span>     <span class="d">=</span> <span class="v">picker → adjunta archivo</span>   <span class="d">→ contexto específico</span>
+<span class="k">#selection</span><span class="d">=</span> <span class="v">lo seleccionado</span>           <span class="d">→ contexto mínimo</span>
+<span class="k">@workspace</span><span class="d">=</span> <span class="v">todo el proyecto</span>          <span class="d">→ contexto máximo</span>
+
+<span class="k">MCP</span>       <span class="d">=</span> <span class="v">herramientas externas</span>     <span class="d">→ docs, registries, APIs en tiempo real</span></pre>
+</div>
+
+<div style="margin:2rem 0;padding:1.2rem;background:var(--accent-g);border:1px solid rgba(16,185,129,.25);border-radius:var(--radius);text-align:center">
+  <div style="font-size:1.2rem;margin-bottom:.3rem">📖</div>
+  <div style="font-weight:700;margin-bottom:.3rem">Documentación oficial</div>
+  <a href="https://docs.github.com/en/copilot/customizing-copilot/adding-repository-custom-instructions-for-github-copilot" target="_blank" style="color:var(--accent);text-decoration:none;font-weight:600">GitHub Copilot — Custom Instructions</a>
+  &nbsp;·&nbsp;
+  <a href="https://docs.github.com/en/copilot/using-github-copilot/copilot-chat/using-github-copilot-chat-in-your-ide" target="_blank" style="color:var(--accent);text-decoration:none;font-weight:600">Copilot Chat en VS Code</a>
+  <div style="color:var(--muted);font-size:.8rem;margin-top:.3rem">Fuente oficial de todas las features de este workshop</div>
+</div>
+
+</div><!-- /container -->
+
+<footer>
+  <p>Creado por <a href="https://github.com/roxsross">DevOps Roxs</a> · Basado en la <a href="https://docs.github.com/en/copilot" target="_blank">documentación oficial de GitHub Copilot</a></p>
+  <div class="cmd">github copilot: your context, your rules, your flow</div>
+</footer>
+
+<script>
+function toggleMission(el){
+  if(el.classList.contains('mission')){el.classList.toggle('active')}
+  else{el.closest('.mission').classList.toggle('active')}
+}
+function togglePres(el){el.classList.toggle('open')}
+function copyP(e,btn){
+  e.stopPropagation();
+  const pre=btn.closest('.prompt').querySelector('pre');
+  navigator.clipboard.writeText(pre.textContent.trim()).then(()=>{
+    btn.textContent='✓ Copiado';btn.classList.add('ok');
+    setTimeout(()=>{btn.textContent='Copiar';btn.classList.remove('ok')},1500);
+  });
+}
+function copyF(e,btn){
+  e.stopPropagation();
+  const pre=btn.closest('.file-box').querySelector('pre');
+  navigator.clipboard.writeText(pre.textContent.trim()).then(()=>{
+    btn.textContent='✓ Copiado';btn.classList.add('ok');
+    setTimeout(()=>{btn.textContent='Copiar';btn.classList.remove('ok')},1500);
+  });
+}
+document.querySelectorAll('.prompt,.presenter,.copy,.file-box,.file-bar,.copy').forEach(el=>{
+  el.addEventListener('click',e=>e.stopPropagation());
+});
+</script>
+</body>
+</html>
